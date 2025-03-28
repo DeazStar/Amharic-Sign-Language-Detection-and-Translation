@@ -1,4 +1,4 @@
-Experiment on Amharic Sign Language Classification Using ResNet50 and CNN
+# Experiment on Amharic Sign Language Classification Using ResNet50 and CNN
 Objective
 
 The goal of this experiment was to develop an Amharic Sign Language classifier by leveraging deep learning techniques. The approach involved using ResNet50 as a feature extractor and a Convolutional Neural Network (CNN) for training the classifier. The model was trained on a dataset consisting of 1,750 images, representing 10 different sign classes.
