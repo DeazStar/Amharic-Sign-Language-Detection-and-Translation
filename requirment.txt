@@ -1,0 +1,7 @@
+tensorflow==2.19.0
+numpy==2.2.4
+opencv-python==4.11.0.86
+keras==3.9.2
+pandas==2.2.3
+mediapipe==0.10.21
+python-dotenv==1.1.0
