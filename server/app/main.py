@@ -6,4 +6,5 @@ from app.routes import image_processing , feedback
 app = FastAPI(title="Hand Detection API")
 
 # Include image processing routes
-app.include_router(image_processing.router , feedback.router)
+app.include_router(image_processing.router)
+app.include_router(feedback.router)
