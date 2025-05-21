@@ -1,0 +1,61 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Logs and local database
+*.log
+*.sqlite3
+*.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python cache and test coverage
+.cache/
+.coverage
+.tox/
+.pytest_cache/
+
+# Environment variables and credentials
+.env
+.env.*
+
+# FastAPI static/media/temp files (custom)
+uploads/
+media/
+temp/
+
+# Audio files (if generated)
+*.wav
+*.mp3
+
+# Jupyter notebooks (optional)
+*.ipynb
+
+# __pycache__ folders anywhere in the project
+**/__pycache__/
