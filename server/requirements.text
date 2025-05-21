@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+mediapipe
+opencv-python
+tenserflow
+gTTS
+transformers
+torch
