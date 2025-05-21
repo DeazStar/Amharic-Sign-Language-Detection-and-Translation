@@ -2,7 +2,7 @@
 
 
 
-import 'package:camera_app/lib/features/theme/domain/entity/app_theme_entity.dart';
+import 'package:camera_app/features/theme/domain/entity/app_theme_entity.dart';
 
 abstract class ThemeRepository {
   Future<void> saveTheme(AppThemeEntity theme);

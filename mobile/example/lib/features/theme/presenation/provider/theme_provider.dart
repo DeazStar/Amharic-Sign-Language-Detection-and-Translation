@@ -1,8 +1,8 @@
-import 'package:camera_app/lib/features/theme/domain/entity/app_theme_entity.dart';
-import 'package:camera_app/lib/features/theme/domain/usecase/load_font_usecase.dart';
-import 'package:camera_app/lib/features/theme/domain/usecase/load_theme_usecase.dart';
-import 'package:camera_app/lib/features/theme/domain/usecase/save_font_usecase.dart';
-import 'package:camera_app/lib/features/theme/domain/usecase/save_theme_usecase.dart';
+import 'package:camera_app/features/theme/domain/entity/app_theme_entity.dart';
+import 'package:camera_app/features/theme/domain/usecase/load_font_usecase.dart';
+import 'package:camera_app/features/theme/domain/usecase/load_theme_usecase.dart';
+import 'package:camera_app/features/theme/domain/usecase/save_font_usecase.dart';
+import 'package:camera_app/features/theme/domain/usecase/save_theme_usecase.dart';
 import 'package:flutter/material.dart';
 
 class ThemeProvider with ChangeNotifier {

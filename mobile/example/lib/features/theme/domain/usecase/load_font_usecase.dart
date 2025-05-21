@@ -1,4 +1,4 @@
-import 'package:camera_app/lib/features/theme/domain/repository/app_theme_entity.dart';
+import 'package:camera_app/features/theme/domain/repository/app_theme_entity.dart';
 
 class LoadFontSize {
   final ThemeRepository repository;

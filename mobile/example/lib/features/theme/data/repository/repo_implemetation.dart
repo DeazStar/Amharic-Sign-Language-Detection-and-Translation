@@ -1,9 +1,9 @@
 // core/theme/data/repositories_impl/theme_repository_impl.dart
 
-import 'package:camera_app/lib/features/theme/data/data_source/theme_local_datasource.dart';
-import 'package:camera_app/lib/features/theme/data/model/theme_model.dart';
-import 'package:camera_app/lib/features/theme/domain/entity/app_theme_entity.dart';
-import 'package:camera_app/lib/features/theme/domain/repository/app_theme_entity.dart';
+import 'package:camera_app/features/theme/data/data_source/theme_local_datasource.dart';
+import 'package:camera_app/features/theme/data/model/theme_model.dart';
+import 'package:camera_app/features/theme/domain/entity/app_theme_entity.dart';
+import 'package:camera_app/features/theme/domain/repository/app_theme_entity.dart';
 
 class ThemeRepositoryImpl implements ThemeRepository {
   final ThemeLocalDataSource localDataSource;
