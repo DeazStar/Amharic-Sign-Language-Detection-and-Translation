@@ -14,10 +14,10 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/post-feedback", response_model=FeedbackOut)
+@router.post("/feedback", response_model=FeedbackOut)
 def post_feedback(feedback: FeedbackCreate, db: Session = Depends(get_db)):
     return crud_feedback.create_feedback(db, feedback)
 
-@router.get("/get-feedbacks", response_model=list[FeedbackOut])
+@router.get("/feedbacks", response_model=list[FeedbackOut])
 def get_feedbacks(db: Session = Depends(get_db), _: str = Depends(get_admin)):
     return crud_feedback.get_unresolved_feedbacks(db)
