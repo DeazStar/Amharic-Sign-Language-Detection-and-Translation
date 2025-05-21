@@ -56,8 +56,8 @@ Future<void> initServiceLocator() async {
 
   // --- Core ---
   sl.registerLazySingleton<NetworkInfo>(
-    // () => NetworkInfoImpl(sl()), // If NetworkInfoImpl needs Connectivity
-    () => NetworkInfoImpl(), // Assuming NetworkInfoImpl has a default constructor or simple setup
+    () => NetworkInfoImpl(sl()), // If NetworkInfoImpl needs Connectivity
+    // () => NetworkInfoImpl(), // Assuming NetworkInfoImpl has a default constructor or simple setup
   );
 
   // --- External ---
