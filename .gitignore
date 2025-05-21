@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+*.pyc
 # C extensions
 *.so
 
@@ -56,3 +56,16 @@ temp/
 
 # __pycache__ folders anywhere in the project
 **/__pycache__/
+
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Alembic
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
+alembic/versions/*.py~  # Temporary files
+alembic.ini~            # Editor backup files
+# Migrations (optional if you want to ignore version history)
+# alembic/versions/
