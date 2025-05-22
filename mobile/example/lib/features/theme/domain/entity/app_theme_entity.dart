@@ -1,0 +1,1 @@
+enum AppThemeEntity { system, light, dark }
