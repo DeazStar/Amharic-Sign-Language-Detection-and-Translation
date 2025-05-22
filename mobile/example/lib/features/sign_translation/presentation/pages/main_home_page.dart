@@ -1,4 +1,5 @@
 import 'package:camera_app/features/feedback/presentation/widget/custom_button.dart';
+import 'package:camera_app/features/sign_translation/presentation/pages/camera_page.dart';
 import 'package:flutter/material.dart';
 import '../pages/home_page.dart';
 
@@ -18,7 +19,7 @@ class MainHomePage extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) =>const HomePage(), // Replace with your camera page
+                builder: (context) =>const CameraPage(), // Replace with your camera page
               ),
             );
           }),
