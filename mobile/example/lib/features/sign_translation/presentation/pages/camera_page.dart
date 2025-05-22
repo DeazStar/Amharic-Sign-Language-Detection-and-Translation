@@ -37,6 +37,7 @@ class CameraPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Capture Sign'),
+        
       ),
       body: Container(
         color: Colors.white,

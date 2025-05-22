@@ -40,16 +40,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    // The HomePage itself doesn't need its own Scaffold if it's part of MainNavigationPage's body
-    if (_capturedMedia == null) {
-      return CameraComponent(onMediaCaptured: _onMediaCaptured);
-    } else {
-      return PreviewComponent(
-        filePath: _capturedMedia!.filePath,
-        isVideo: _capturedMedia!.isVideo,
-        onClosePreview: _clearPreview, // Pass the callback to allow going back
-      );
-    }
-  }
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: _capturedMedia == null
+        ? CameraComponent(onMediaCaptured: _onMediaCaptured)
+        : PreviewComponent(
+            filePath: _capturedMedia!.filePath,
+            isVideo: _capturedMedia!.isVideo,
+            onClosePreview: _clearPreview,
+          ),
+  );
+}
+
 }
