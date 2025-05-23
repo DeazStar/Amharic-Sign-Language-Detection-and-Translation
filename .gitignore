@@ -69,3 +69,5 @@ alembic/versions/*.py~  # Temporary files
 alembic.ini~            # Editor backup files
 # Migrations (optional if you want to ignore version history)
 # alembic/versions/
+
+temp_videos/
