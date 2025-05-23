@@ -2,7 +2,7 @@ fastapi
 uvicorn
 mediapipe
 opencv-python
-tensorflow
+tensorflow=2.15.0
 gTTS
 transformers
 torch
