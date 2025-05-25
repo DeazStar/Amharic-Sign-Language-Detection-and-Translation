@@ -3,6 +3,7 @@ uvicorn
 mediapipe
 opencv-python
 tensorflow-cpu
+
 gTTS
 transformers
 torch
