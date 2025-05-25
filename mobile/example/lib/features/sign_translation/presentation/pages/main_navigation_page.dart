@@ -1,8 +1,9 @@
 // lib/features/main_navigation/presentation/pages/main_navigation_page.dart
 
+import 'package:camera_app/features/sign_translation/presentation/pages/main_home_page.dart';
 import 'package:flutter/material.dart';
 // Import your new Home and Settings pages/views
-import '../pages/home_page.dart';
+// import '../pages/home_page.dart';
 import '../../../../features/feedback/presentation/page/setting_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
@@ -17,8 +18,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
 
   static final List<Widget> _widgetOptions = <Widget>[
-    HomePage(),
-    SettingPage(),
+    MainHomePage(),
+   const SettingPage(),
   ];
 
   void _onItemTapped(int index) {
