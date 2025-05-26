@@ -1,5 +1,11 @@
 from typing import Dict, List
 import numpy as np
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
+from app.config import settings
+
 
 def pad_trajectories(trajectories: dict, target_timesteps=6) -> dict:
     for hand in trajectories:
@@ -101,3 +107,31 @@ def pad_single_sample(x, target_timesteps=6):
     else:
         x_padded = x[:target_timesteps]  # Optional: truncate if longer
     return x_padded
+
+
+
+
+
+# Token URL for OAuth2 flow (used in Swagger UI)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/admin/login")
+
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(hours=12)):
+    to_encode = data.copy()
+    expire = datetime.now() + expires_delta
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
+
+def get_admin(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        username: str = payload.get("sub")
+        if username != settings.ADMIN_USERNAME:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    return username
