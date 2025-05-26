@@ -1,13 +1,9 @@
 // lib/features/sign_language_detection/presentation/pages/preview_page.dart
 
-import 'dart:convert'; // For base64Decode
 import 'dart:io';
-import 'dart:typed_data'; // For Uint8List
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:audioplayers/audioplayers.dart'; // Import audioplayers
-
-// Uncomment if you use video_player
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:video_player/video_player.dart';
 
 // Import BLoC, Event, State from the sign_translation feature
@@ -32,28 +28,23 @@ class PreviewPage extends StatefulWidget {
 }
 
 class _PreviewPageState extends State<PreviewPage> {
-  VideoPlayerController? _videoController; // Uncomment for video_player
-  final AudioPlayer _audioPlayer = AudioPlayer(); // Instance of AudioPlayer
-  bool _isAudioPlaying = false; // To track audio playback state for UI updates
+  VideoPlayerController? _videoController;
+  FlutterTts flutterTts = FlutterTts();
+  bool _isTTSSpeaking = false;
 
   @override
   void initState() {
     super.initState();
-    // _audioPlayer.onPlayerStateChanged.listen((PlayerState s) { // For older versions
-    _audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
-      if (mounted) {
-        setState(() {
-          _isAudioPlaying = s == PlayerState.playing;
-        });
-      }
-    });
-    if (widget.isVideo) { // Uncomment for video_player
+    _initTts();
+
+    if (widget.isVideo) {
       _videoController = VideoPlayerController.file(File(widget.filePath))
         ..initialize().then((_) {
           if (mounted) {
             setState(() {});
-            _videoController?.play();
+            _videoController?.play(); // Auto-play
             _videoController?.setLooping(true);
+            _videoController?.addListener(_videoPlayerListener); // Add listener
           }
         }).catchError((error) {
           debugPrint("Error initializing video player: $error");
@@ -66,10 +57,49 @@ class _PreviewPageState extends State<PreviewPage> {
     }
   }
 
+  void _videoPlayerListener() {
+    if (mounted && _videoController != null) {
+      setState(() {
+        // This will trigger a rebuild if the playing state changes,
+        // ensuring the play/pause button icon is updated.
+      });
+    }
+  }
+
+  Future<void> _initTts() async {
+    flutterTts.setStartHandler(() {
+      if (mounted) setState(() => _isTTSSpeaking = true);
+    });
+    flutterTts.setCompletionHandler(() {
+      if (mounted) setState(() => _isTTSSpeaking = false);
+    });
+    flutterTts.setErrorHandler((msg) {
+      if (mounted) {
+        setState(() => _isTTSSpeaking = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('TTS Error: $msg'), backgroundColor: Colors.redAccent),
+        );
+      }
+    });
+    flutterTts.setCancelHandler(() {
+      if (mounted) setState(() => _isTTSSpeaking = false);
+    });
+
+    // Set TTS parameters
+    try {
+      await flutterTts.setVolume(1.0); // Set volume to maximum
+      await flutterTts.setSpeechRate(0.5); // Normal speed
+      await flutterTts.setPitch(1.0); // Normal pitch
+    } catch (e) {
+      debugPrint("Error setting TTS parameters: $e");
+    }
+  }
+
   @override
   void dispose() {
-    _videoController?.dispose(); // Uncomment for video_player
-    _audioPlayer.dispose(); // Dispose the audio player
+    _videoController?.removeListener(_videoPlayerListener);
+    _videoController?.dispose();
+    flutterTts.stop();
     super.dispose();
   }
 
@@ -81,43 +111,137 @@ class _PreviewPageState extends State<PreviewPage> {
         );
   }
 
-  Future<void> _playAudio(String base64Audio) async {
+  Future<void> _speakText(String text) async {
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No text to speak.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
     try {
-      if (base64Audio.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No audio data available.'), backgroundColor: Colors.orange),
-        );
-        return;
+      List<dynamic> languages = await flutterTts.getLanguages;
+      List<dynamic> voices = await flutterTts.getVoices;
+      debugPrint("Available TTS voices: $voices");
+      // print("available voices:");
+      debugPrint("Available TTS languages: $languages");
+      String langToSet = "eng"; // Default fallback
+      bool langFound = false;
+
+      // Try to set Amharic
+      for (var lang in languages) {
+        if (lang is String && (lang.toLowerCase() == "am" || lang.toLowerCase().startsWith("am-"))) {
+          langToSet = lang;
+          langFound = true;
+          break;
+        }
       }
-      Uint8List audioBytes = base64Decode(base64Audio);
-      await _audioPlayer.play(BytesSource(audioBytes));
-      if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Playing audio...'), backgroundColor: Colors.blueAccent),
-        );
+
+      if (langFound) {
+        debugPrint("TTS Language will be set to: $langToSet (Amharic)");
+      } else {
+        // If Amharic not found, try to find any English variant
+        langFound = false; // Reset for English check
+        for (var lang in languages) {
+          if (lang is String && lang.toLowerCase().startsWith("en")) {
+            langToSet = lang;
+            langFound = true;
+            break;
+          }
+        }
+        if (langFound) {
+          debugPrint("Amharic TTS not found, fallback to: $langToSet (English)");
+        } else {
+          text = "TTS language not supported. Please check your TTS settings.";
+           langToSet = "en"; // Fallback to default English
+          debugPrint("Amharic and common English TTS not found, using engine default language.");
+           if(mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Amharic/English TTS not found. Using default voice.'), backgroundColor: Colors.amber),
+            );
+           }
+        }
       }
+      // await flutterTts.setLanguage(langToSet);
+    // await flutterTts.setLanguage("am-ET");
     } catch (e) {
-      debugPrint("Error playing audio: $e");
+      debugPrint("Error setting TTS language: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error playing audio: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error setting TTS language: $e'), backgroundColor: Colors.redAccent),
         );
       }
     }
+    await flutterTts.setVolume(1.0); // Set volume to maximum
+    await flutterTts.setSpeechRate(0.5);
+    var result = await flutterTts.speak(text);
+    // await flutterTts.setLanguage("am");
+  // or
+    // await flutterTts.setLanguage("am-ET");
+    // var result = await flutterTts.speak("ሰላም"); 
+    if (result == 1 && mounted) {
+      setState(() => _isTTSSpeaking = true); // Already handled by setStartHandler
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not start TTS.'), backgroundColor: Colors.redAccent),
+      );
+    }
   }
 
-  Future<void> _stopAudio() async {
-    await _audioPlayer.stop();
+  Future<void> _stopTTSSpeaking() async {
+    var result = await flutterTts.stop();
+    if (result == 1 && mounted) {
+      setState(() => _isTTSSpeaking = false); // Already handled by setCompletionHandler/setCancelHandler
+    }
   }
-
 
   Widget _buildMediaPreview() {
     if (widget.isVideo) {
-      // --- Video Player Implementation (using video_player package) ---
-      if (_videoController != null && _videoController!.value.isInitialized) { // Uncomment for video_player
-        return AspectRatio(
-          aspectRatio: _videoController!.value.aspectRatio,
-          child: VideoPlayer(_videoController!),
+      if (_videoController != null && _videoController!.value.isInitialized) {
+        return Stack(
+          alignment: Alignment.center,
+          children: <Widget>[
+            AspectRatio(
+              aspectRatio: _videoController!.value.aspectRatio,
+              child: VideoPlayer(_videoController!),
+            ),
+            GestureDetector( // To allow tapping anywhere on video to play/pause
+              onTap: () {
+                if (_videoController!.value.isPlaying) {
+                  _videoController!.pause();
+                } else {
+                  _videoController!.play();
+                }
+                if (mounted) setState(() {}); // Update button icon
+              },
+              child: Container( // Transparent container to catch taps
+                color: Colors.transparent, 
+              ),
+            ),
+            // Play/Pause button
+            Positioned.fill(
+              child: Center(
+                child: IconButton(
+                  icon: Icon(
+                    _videoController!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    color: Colors.white70,
+                    size: 60.0,
+                  ),
+                  onPressed: () {
+                    if (mounted) {
+                      setState(() {
+                        if (_videoController!.value.isPlaying) {
+                          _videoController!.pause();
+                        } else {
+                          _videoController!.play();
+                        }
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
         );
       } else if (_videoController != null && _videoController!.value.hasError) {
         return const Center(
@@ -126,21 +250,7 @@ class _PreviewPageState extends State<PreviewPage> {
       } else {
         return const Center(child: CircularProgressIndicator());
       }
-      // --- Placeholder for Video ---
-      // return Center(
-      //   child: Column(
-      //     mainAxisAlignment: MainAxisAlignment.center,
-      //     children: [
-      //       const Icon(Icons.videocam, size: 100, color: Colors.grey),
-      //       const SizedBox(height: 10),
-      //       Text('Video Preview: ${widget.filePath.split('/').last}'),
-      //       const SizedBox(height: 10),
-      //       const Text('(Video player implementation needed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-      //     ],
-      //   ),
-      // );
     } else {
-      // --- Image Preview ---
       return Image.file(
         File(widget.filePath),
         fit: BoxFit.contain,
@@ -184,7 +294,7 @@ class _PreviewPageState extends State<PreviewPage> {
                       ),
                     );
                   } else if (state is SignTranslationSuccess) {
-                     ScaffoldMessenger.of(context).showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Translation Successful!'),
                         backgroundColor: Colors.green,
@@ -198,8 +308,7 @@ class _PreviewPageState extends State<PreviewPage> {
                   }
 
                   if (state is SignTranslationSuccess) {
-                    final bool hasAudio = state.translationResult.audioBase64 != null &&
-                                          state.translationResult.audioBase64!.isNotEmpty;
+                    final String translatedText = state.translationResult.translatedText;
                     return SingleChildScrollView(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -218,36 +327,39 @@ class _PreviewPageState extends State<PreviewPage> {
                               border: Border.all(color: Colors.grey[400]!)
                             ),
                             child: Text(
-                              state.translationResult.translatedText,
+                              translatedText,
                               style: const TextStyle(
                                 fontSize: 16,
-                                fontFamily: 'NotoSerifEthiopic', // Example font name
+                                fontFamily: 'NotoSerifEthiopic',
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
                           const SizedBox(height: 20),
-                          if (hasAudio)
+                          if (translatedText.isNotEmpty)
                             ElevatedButton.icon(
-                              icon: Icon(_isAudioPlaying ? Icons.stop_circle_outlined : Icons.play_circle_outline),
-                              label: Text(_isAudioPlaying ? 'Stop Audio' : 'Play Audio'),
+                              icon: Icon(_isTTSSpeaking ? Icons.volume_off : Icons.volume_up),
+                              label: Text(_isTTSSpeaking ? 'Stop Speaking' : 'Speak Text'),
                               onPressed: () {
-                                if (_isAudioPlaying) {
-                                  _stopAudio();
+                                if (_isTTSSpeaking) {
+                                  _stopTTSSpeaking();
                                 } else {
-                                  _playAudio(state.translationResult.audioBase64!);
+                                  _speakText(translatedText);
                                 }
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: _isAudioPlaying ? Colors.redAccent : Colors.blueAccent,
+                                backgroundColor: _isTTSSpeaking ? Colors.redAccent : Colors.teal,
                               ),
                             ),
-                          if (hasAudio) const SizedBox(height: 10), // Spacing if audio button is present
+                          const SizedBox(height: 10),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.clear_all),
                             label: const Text('Translate Another / Clear'),
                             onPressed: () {
-                              _stopAudio(); // Stop audio if playing before resetting
+                              _stopTTSSpeaking();
+                              if (widget.isVideo && _videoController != null && _videoController!.value.isPlaying) {
+                                _videoController!.pause(); // Pause video before resetting
+                              }
                               context.read<SignTranslationBloc>().add(ResetSignTranslationEvent());
                             },
                             style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),

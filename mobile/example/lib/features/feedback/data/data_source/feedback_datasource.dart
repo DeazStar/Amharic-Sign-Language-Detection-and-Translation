@@ -12,7 +12,7 @@ class FeedbackRemoteDataSource {
   Future<bool> sendFeedback(FeedbackModel feedback) async {
     
     final response = await client.post(
-      Uri.parse('https://yourapi.com/feedback'),
+      Uri.parse('http://18.188.141.168:8000/feedback'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(feedback.toJson()),
     );

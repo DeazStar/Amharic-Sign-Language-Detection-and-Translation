@@ -18,7 +18,7 @@ class SignTranslationRemoteDataSourceImpl implements SignTranslationRemoteDataSo
   final http.Client client; // Injecting the HTTP client for testability
 
   // Define your base API URL - move this to a config file ideally
-  final String baseUrl = "http://192.168.205.226:8000"; // <-- REPLACE WITH YOUR ACTUAL BASE URL
+  final String baseUrl = "http://18.188.141.168:8000"; // <-- REPLACE WITH YOUR ACTUAL BASE URL
 
   SignTranslationRemoteDataSourceImpl({required this.client});
 
@@ -28,7 +28,7 @@ class SignTranslationRemoteDataSourceImpl implements SignTranslationRemoteDataSo
     required InputType inputType,
   }) async {
     // Determine the correct endpoint based on the input type
-    final String endpoint = inputType == InputType.video ? '/process-video' : '/process-image/';
+    final String endpoint = inputType == InputType.video ? '/api/video/translate' : '/process-image/';
     final Uri uri = Uri.parse('$baseUrl$endpoint');
 
     try {

@@ -205,56 +205,56 @@ class _PreviewComponentState extends State<PreviewComponent> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (state is SignTranslationSuccess) {
-                  final bool hasAudio = state.translationResult.audioBase64 != null &&
-                                        state.translationResult.audioBase64!.isNotEmpty;
-                  return SingleChildScrollView( // In case content overflows
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Translation Result:',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey[400]!)
-                          ),
-                          child: Text(
-                            state.translationResult.translatedText,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontFamily: 'NotoSerifEthiopic', // Using font from your provided code
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        if (hasAudio)
-                          ElevatedButton.icon(
-                            icon: Icon(_isAudioPlaying ? Icons.stop_circle_outlined : Icons.play_circle_outline),
-                            label: Text(_isAudioPlaying ? 'Stop Audio' : 'Play Audio'),
-                            onPressed: () {
-                              if (_isAudioPlaying) {
-                                _stopAudio();
-                              } else {
-                                _playAudio(state.translationResult.audioBase64!);
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _isAudioPlaying ? Colors.redAccent : Colors.blueAccent,
-                            ),
-                          ),
-                        // The "Translate Another / Clear" button is now handled by "Back to Camera"
-                      ],
-                    ),
-                  );
-                }
+                // if (state is SignTranslationSuccess) {
+                //   final bool hasAudio = state.translationResult.audioBase64 != null &&
+                //                         state.translationResult.audioBase64!.isNotEmpty;
+                //   return SingleChildScrollView( // In case content overflows
+                //     child: Column(
+                //       mainAxisAlignment: MainAxisAlignment.center,
+                //       children: [
+                //         const Text(
+                //           'Translation Result:',
+                //           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                //           textAlign: TextAlign.center,
+                //         ),
+                //         const SizedBox(height: 12),
+                //         Container(
+                //           padding: const EdgeInsets.all(12),
+                //           decoration: BoxDecoration(
+                //             color: Colors.grey[200],
+                //             borderRadius: BorderRadius.circular(8),
+                //             border: Border.all(color: Colors.grey[400]!)
+                //           ),
+                //           child: Text(
+                //             state.translationResult.translatedText,
+                //             style: const TextStyle(
+                //               fontSize: 16,
+                //               fontFamily: 'NotoSerifEthiopic', // Using font from your provided code
+                //             ),
+                //             textAlign: TextAlign.center,
+                //           ),
+                //         ),
+                //         const SizedBox(height: 20),
+                //         if (hasAudio)
+                //           ElevatedButton.icon(
+                //             icon: Icon(_isAudioPlaying ? Icons.stop_circle_outlined : Icons.play_circle_outline),
+                //             label: Text(_isAudioPlaying ? 'Stop Audio' : 'Play Audio'),
+                //             onPressed: () {
+                //               if (_isAudioPlaying) {
+                //                 _stopAudio();
+                //               } else {
+                //                 _playAudio(state.translationResult.audioBase64!);
+                //               }
+                //             },
+                //             style: ElevatedButton.styleFrom(
+                //               backgroundColor: _isAudioPlaying ? Colors.redAccent : Colors.blueAccent,
+                //             ),
+                //           ),
+                //         // The "Translate Another / Clear" button is now handled by "Back to Camera"
+                //       ],
+                //     ),
+                //   );
+                // }
 
                 // Handle initial state or failure state where user might want to retry
                 if (state is SignTranslationFailure) {
