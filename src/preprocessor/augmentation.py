@@ -1,5 +1,7 @@
 import random
 import numpy as np
+import cv2 as cv
+import imutils
 
 class HandLandmarkAugmenter:
     def __init__(
@@ -14,7 +16,7 @@ class HandLandmarkAugmenter:
         translate_prob=0.6,
         rotation_prob=0.7,
         jitter_prob=0.9,
-        
+
     ):
         """
         Initialize the hand landmark augmenter with transformation parameters.
@@ -35,11 +37,11 @@ class HandLandmarkAugmenter:
         self.translate_prob = translate_prob
         self.rotation_prob = rotation_prob
         self.jitter_prob = jitter_prob
-        
+
     def _non_uniform_scaling(self, landmark):
         """
         Perform non-uniform scaling on the landmark.
-        
+
             Args:
                 landmark: The hand landmark to be scaled.
         """
@@ -49,11 +51,11 @@ class HandLandmarkAugmenter:
             scale_matrix = np.array([sx, sy])
             landmark = landmark * scale_matrix
         return landmark
-    
+
     def _shear_transform(self, landmarks):
         """
         Perform shear transformation on the landmark.
-        
+
             Args:
                 landmarks: The hand landmark to be sheared.
         """
@@ -62,11 +64,11 @@ class HandLandmarkAugmenter:
             shear_matrix = np.array([[1, sxy], [0, 1]])
             landmarks = landmarks @ shear_matrix
         return landmarks
-    
+
     def _micro_rotation(self, landmarks):
         """
         Perform micro rotation on the landmark.
-        
+
             Args:
                 landmarks: The hand landmark to be rotated.
         """
@@ -77,11 +79,11 @@ class HandLandmarkAugmenter:
             rotation_matrix = np.array([[cos_a, -sin_a], [sin_a, cos_a]])
             landmarks = landmarks @ rotation_matrix
         return landmarks
-    
+
     def _jitter_landmarks(self, landmarks):
         """
         Add Gaussian noise to the landmarks.
-        
+
             Args:
                 landmarks: The hand landmark to be jittered.
         """
@@ -115,3 +117,38 @@ class HandLandmarkAugmenter:
 
         return augmented_landmarks
 
+
+class ImageLevelAugmentation:
+    def __init__(self):
+        pass
+
+    def increase_brightness(self, image, value=30):
+        """
+        Update the brightness of the image by a given amount.
+        Args
+            image: the image to update
+            value: by how much to change the brightness
+        Returns:
+            updated image
+        """
+        hsv = cv.cvtColor(image, cv.COLOR_BGR2HSV)
+        h, s, v = cv.split(hsv)
+
+        v = cv.add(v, value)
+        v[v > 255] = 255
+        v[v < 0] = 0
+
+        final_hsv = cv.merge((h, s, v))
+        img = cv.cvtColor(final_hsv, cv.COLOR_HSV2BGR)
+        return img
+
+    def rotate(image, degrees = 0):
+        """
+        Rotate the image by a given angle.
+        Args
+            image: the image to rotate
+            degrees: the amount of degrees by which to rotate the image
+        Returns:
+            rotated image
+        """
+        return imutils.rotate_bound(image, degrees)
