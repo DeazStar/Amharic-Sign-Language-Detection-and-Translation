@@ -1,10 +1,14 @@
 // lib/app.dart
 
+import 'package:camera_app/app_theme.dart';
+import 'package:camera_app/features/sign_translation/presentation/pages/main_navigation_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 
 // Import the entry page for your sign language detection feature
 // Ensure this path is correct based on your project structure.
+import 'features/feedback/presentation/bloc/bloc/feedback_bloc.dart';
 import 'features/sign_translation/presentation/pages/camera_page.dart';
 
 // Import BLoC for providing it to the widget tree
@@ -13,6 +17,7 @@ import 'features/sign_translation/presentation/bloc/sign_translation_bloc.dart';
 
 // Import the service locator instance (sl)
 // Ensure this path is correct.
+import 'features/theme/presenation/provider/theme_provider.dart';
 import 'injection_container.dart'; 
 
 class CameraAwesomeApp extends StatelessWidget {
@@ -20,7 +25,9 @@ class CameraAwesomeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // MultiBlocProvider is used to provide one or more BLoCs to the widget tree.
+    
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
     return MultiBlocProvider(
       providers: [
         // Provide SignTranslationBloc using the service locator (sl).
@@ -28,17 +35,19 @@ class CameraAwesomeApp extends StatelessWidget {
         BlocProvider<SignTranslationBloc>(
           create: (context) => sl<SignTranslationBloc>(),
         ),
-        // If you have other BLoCs for different features, you can provide them here as well.
-        // For example:
-        // BlocProvider<AnotherFeatureBloc>(
-        //   create: (context) => sl<AnotherFeatureBloc>(),
-        // ),
+        
+         BlocProvider<FeedbackBloc>(
+          create: (_) => sl<FeedbackBloc>(),
+        ),
       ],
-      child: const MaterialApp(
-        title: 'Sign Language App', // You can customize the app title.
-        // The initial screen of your application.
-        // CameraPage is expected to be the entry point for capturing images/videos.
-        home: CameraPage(), 
+      child: MaterialApp(
+        title: 'Sign Language App',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(themeProvider.fontSize),
+        darkTheme: AppTheme.dark(themeProvider.fontSize),
+        themeMode: themeProvider.themeMode,
+        
+        home: MainNavigationPage(), 
         // You can also define theme data, routes, etc., for your MaterialApp here.
         // theme: ThemeData(
         //   primarySwatch: Colors.blue,

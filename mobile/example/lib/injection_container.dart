@@ -2,8 +2,6 @@
 
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
-// You might need to add connectivity_plus to your pubspec.yaml
-// import 'package:connectivity_plus/connectivity_plus.dart';
 
 // Core
 import 'core/network/network_info.dart';
@@ -19,6 +17,22 @@ import 'features/sign_translation/data/repositories/sign_translation_repository_
 import 'features/sign_translation/domain/usecases/translate_sign_usecase.dart';
 // BLoC
 import 'features/sign_translation/presentation/bloc/sign_translation_bloc.dart';
+
+import 'package:camera_app/features/feedback/data/data_source/feedback_datasource.dart';
+import 'package:camera_app/features/feedback/data/repository/feedback_repo_impl.dart';
+import 'package:camera_app/features/feedback/domain_layer/repository/feedback_repository.dart';
+import 'package:camera_app/features/feedback/domain_layer/usecase/send_feedback_usecase.dart';
+import 'package:camera_app/features/feedback/presentation/bloc/bloc/feedback_bloc.dart';
+import 'package:camera_app/features/theme/data/data_source/theme_local_datasource.dart';
+import 'package:camera_app/features/theme/data/repository/repo_implemetation.dart';
+import 'package:camera_app/features/theme/domain/repository/app_theme_entity.dart';
+import 'package:camera_app/features/theme/domain/usecase/load_font_usecase.dart';
+import 'package:camera_app/features/theme/domain/usecase/load_theme_usecase.dart';
+import 'package:camera_app/features/theme/domain/usecase/save_font_usecase.dart';
+import 'package:camera_app/features/theme/domain/usecase/save_theme_usecase.dart';
+import 'package:camera_app/features/theme/presenation/provider/theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 // Create a GetIt instance
 final sl = GetIt.instance; // sl stands for Service Locator
@@ -57,11 +71,49 @@ Future<void> initServiceLocator() async {
   // --- Core ---
   sl.registerLazySingleton<NetworkInfo>(
     () => NetworkInfoImpl(sl()), // If NetworkInfoImpl needs Connectivity
-    // () => NetworkInfoImpl(), // Assuming NetworkInfoImpl has a default constructor or simple setup
   );
-
+  // If using internet_connection_checker:
+  sl.registerLazySingleton<InternetConnectionChecker>(
+    () => InternetConnectionChecker.createInstance(),
+  );
   // --- External ---
   sl.registerLazySingleton(() => http.Client());
   // If using connectivity_plus:
   // sl.registerLazySingleton(() => Connectivity());
+
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton(() => sharedPreferences);
+
+  sl.registerLazySingleton<FeedbackRemoteDataSource>(
+    () => FeedbackRemoteDataSource(client: sl()),
+  );
+  sl.registerLazySingleton<FeedbackRepository>(() => FeedbackRepositoryImpl(
+        remoteDataSource: sl<FeedbackRemoteDataSource>(),
+        networkInfo: sl<NetworkInfo>(),
+      ));
+
+  sl.registerLazySingleton<SendFeedbackUseCase>(
+    () => SendFeedbackUseCase(sl<FeedbackRepository>()),
+  );
+  sl.registerFactory<FeedbackBloc>(
+    () => FeedbackBloc(sendFeedback: sl<SendFeedbackUseCase>()),
+  );
+
+  sl.registerLazySingleton(() => ThemeLocalDataSource(sl()));
+  sl.registerLazySingleton<ThemeRepository>(() => ThemeRepositoryImpl(sl()));
+
+  sl.registerLazySingleton(() => LoadTheme(sl()));
+  sl.registerLazySingleton(() => SaveTheme(sl()));
+  sl.registerLazySingleton(() => SaveFontSize(sl()));
+  sl.registerLazySingleton(() => LoadFontSize(sl()));
+
+  final themeProvider = ThemeProvider(
+    loadThemeUseCase: sl(),
+    saveThemeUseCase: sl(),
+    loadFontSizeUseCase: sl(),
+    saveFontSizeUseCase: sl(),
+  );
+
+  await themeProvider.init(); // Load saved theme before app starts
+  sl.registerSingleton<ThemeProvider>(themeProvider);
 }

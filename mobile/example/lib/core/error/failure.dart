@@ -32,3 +32,10 @@ class LocalStorageFailure extends Failure {
     @override
    List<Object> get props => [message ?? 'LocalStorageFailure'];
 }
+
+class NetworkFailure extends Failure {
+  final String? message;
+  const NetworkFailure({this.message});
+   @override
+  List<Object> get props => [message ?? 'NetworkFailure'];
+}

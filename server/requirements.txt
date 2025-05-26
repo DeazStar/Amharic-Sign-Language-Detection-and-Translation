@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+mediapipe
+opencv-python
+tensorflow-cpu
+
+gTTS
+transformers
+torch
+
+sqlalchemy
+psycopg2-binary
+python-dotenv
+alembic

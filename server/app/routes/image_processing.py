@@ -39,8 +39,8 @@ async def process_image(file: UploadFile = File(...)):
     print(prediction)
     prediction = AMHARIC_MAP.get(prediction, "Unknown")
     
-    audio_base64 = generate_base64_audio(prediction)
+    # audio_base64 = generate_base64_audio(prediction)
     return {
     "prediction": prediction
-    , "audio": audio_base64
+
 }

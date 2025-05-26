@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 // Import the PreviewPage from its new location
 // Make sure the project name 'camera_app' matches your actual project name
 // If your project root is 'camera_app', then the import should be:
-// import 'package:camera_app/features/sign_language_detection/presentation/pages/preview_page.dart';
+// import 'package:camera_app/featuress/sign_language_detection/presentation/pages/preview_page.dart';
 // For a generic structure assuming 'camera_app' is the project name in pubspec.yaml:
 import 'preview_page.dart'; // Adjusted relative path
 
@@ -37,6 +37,7 @@ class CameraPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Capture Sign'),
+        
       ),
       body: Container(
         color: Colors.white,
