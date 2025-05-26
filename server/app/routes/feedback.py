@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.schemas.feedback import FeedbackCreate, FeedbackOut
 from app.crud import feedback as crud_feedback
-from app.core.security import get_admin
+from app.utils.helpers import get_admin
 
 router = APIRouter()
 
