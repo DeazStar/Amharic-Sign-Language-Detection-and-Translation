@@ -4,13 +4,14 @@ import 'package:flutter/material.dart'; // For @required and debugPrint
 import 'package:http/http.dart' as http;
 import 'dart:convert'; // For jsonEncode, jsonDecode, utf8, base64Decode
 import '../../../../core/error/exceptions.dart'; // Assuming ServerException exists
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // --- Google Cloud TTS Configuration ---
 // WARNING: The access token below is short-lived and should NOT be hardcoded in production.
 // You will need to refresh it frequently for testing.
 // For production, use a proper server-side authentication method or API keys with restrictions.
-const String _googleCloudAccessToken = "ya29.a0AW4XtxhMYI9XX7xkCqrB8v3bBlKwAsYs9NtXhThrw59E7NN29NM6bxcRo1O4ku7pJOjESpuyI7Gw5mctfn5pn2Wq8tNJfDV32viCFv9W4lDSIgpk-3lgKlZdhJlx39koNH3evtbngZqBnfclfDo28G19PcG6OyiPiDyRCQRxzVDTnBIuhNtqR53IyekecAHD-wlRlmVhrZkzlCYLu_bm6wG6pBvUWtP5V8CSJGCxoQmhZkz5fKvWN1ppVVJCFCvC_UNtJXTa9fBIltI2sF6iU2haSUh0G28glQ4fOMm1VoMXDhWBLJks1k6-jx2W_cI6s6QO7bwMSIPF4kCRURySeOXVHtiJ9TFGp72kQAhhIwqdNQbYSfXkagel9yPfUjp4QvRrwT01BLkdDyZU0mqCN_7BGRV2H5rnH91FaCgYKAfgSARESFQHGX2Mi2i27LE6YOU5owSqCy4q1DQ0427"; // YOUR SHORT-LIVED ACCESS TOKEN
-const String _googleCloudProjectId = "striped-botany-461100-c3"; // YOUR PROJECT ID
+final String _googleCloudAccessToken = dotenv.env['GOOGLE_CLOUD_ACCESS_TOKEN'] ??"";
+final String _googleCloudProjectId = dotenv.env['GOOGLE_CLOUD_PROJECT_ID'] ?? "";
 
 const String _googleCloudTtsEndpoint = "https://texttospeech.googleapis.com/v1/text:synthesize";
 // Desired audio output format for Google Cloud TTS
