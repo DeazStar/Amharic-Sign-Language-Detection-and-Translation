@@ -419,7 +419,7 @@ class _PreviewPageState extends State<PreviewPage> {
                                 }
                                 context.read<SignTranslationBloc>().add(ResetSignTranslationEvent());
                               },
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
                             ),
                           ],
                         ),
