@@ -1,7 +1,6 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // For Riverpod's ProviderScope
 // Import the 'provider' package with a prefix to avoid name collision
@@ -21,7 +20,6 @@ void main() async {
 
   // 2. Initialize your service locator (GetIt)
   await di.initServiceLocator();
-  await dotenv.load();
   // 3. Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
