@@ -55,14 +55,14 @@ class SignTranslationRepositoryImpl implements SignTranslationRepository {
         return Right(remoteResultModel);
       } on ServerException catch (e) {
         // 5a. Handle specific API errors and return a ServerFailure (Left side of Either)
-        return Left(ServerFailure(message: e.message ?? 'API Error Status: ${e.statusCode}'));
+        return Left(ServerFailure(message: 'Failed to connect to the server'));
       } on SocketException {
         // Handle cases where the network check passed but the connection dropped during the request
          return const Left(ServerFailure(message: 'Failed to connect to the server.'));
       } catch (e) {
          // Handle unexpected errors during the process
          print('Unexpected error in repository: $e'); // Log the error
-         return Left(ServerFailure(message: 'An unexpected error occurred: ${e.toString()}'));
+         return Left(ServerFailure(message: 'An unexpected error occurred please try again later.'));
       }
     } else {
       // 5b. Handle no network connection case
@@ -73,7 +73,7 @@ class SignTranslationRepositoryImpl implements SignTranslationRepository {
       // } on CacheException {
       //   return Left(CacheFailure());
       // }
-      return const Left(ServerFailure(message: 'Noooooooooo Internet Connection')); // Or a specific NetworkFailure
+      return const Left(ServerFailure(message: 'No Internet Connection')); // Or a specific NetworkFailure
     }
   }
 }

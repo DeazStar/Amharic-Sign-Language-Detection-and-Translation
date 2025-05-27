@@ -59,6 +59,8 @@ flutter:
     - assets/models/
     - assets/fonts/
     - assets/icon/
+    - assets/images/
+
     # - images/a_dot_burr.jpeg
     # - images/a_dot_ham.jpeg
 flutter_launcher_icons:

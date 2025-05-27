@@ -64,18 +64,18 @@ class SignTranslationRemoteDataSourceImpl implements SignTranslationRemoteDataSo
       } else {
         // If the server returned an error status code (4xx, 5xx), throw a ServerException
         // You might want to parse the error message from response.body if available
-        throw ServerException(statusCode: response.statusCode, message: response.body);
+        throw ServerException(statusCode: response.statusCode, message: 'Could not translate the file.');
       }
     } on SocketException {
        // Handle network errors (no internet connection)
-       throw const ServerException(message: 'Notntntnt Internet Connection');
+       throw const ServerException(message: 'No Internet Connection');
     } on FormatException catch (e) {
       // Handle errors during JSON parsing (invalid format from backend)
-      throw ServerException(message: 'Invalid response format from server: ${e.message}');
+      throw ServerException(message: 'Could not translate the file.');
     } catch (e) {
       // Handle any other unexpected errors during the HTTP request
       print('Unexpected error in remote data source: $e'); // Log the error
-      throw ServerException(message: 'An unexpected error occurred: ${e.toString()}');
+      throw ServerException(message: 'An unexpected error occurred please try again.');
     }
   }
 }

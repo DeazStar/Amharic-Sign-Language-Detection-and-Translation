@@ -30,9 +30,9 @@ class TtsRepositoryImpl implements TtsRepository {
         );
         return Right(TtsAudioResult(audioBytes: audioBytes));
       } on ServerException catch (e) {
-        return Left(ServerFailure(message: e.message ?? "Server Error", statusCode: e.statusCode));
+        return Left(ServerFailure(message: "Server Error try again later", statusCode: e.statusCode));
       } catch (e) {
-        return Left(ServerFailure(message: "Unexpected error: ${e.toString()}"));
+        return Left(ServerFailure(message: "Unexpected error please try again later"));
       }
     } else {
       return const Left(NetworkFailure(message: 'No internet connection'));

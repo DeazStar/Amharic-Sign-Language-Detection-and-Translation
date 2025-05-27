@@ -27,7 +27,7 @@ class FeedbackRepositoryImpl implements FeedbackRepository {
         return Right(result);
       } catch (e) {
         
-        return Left(ServerFailure(message: e.toString())); 
+        return Left(ServerFailure(message: 'Failed to send feedback please try again')); 
       }
     } else {
      

@@ -99,7 +99,7 @@ class TtsRemoteDataSourceImpl implements TtsRemoteDataSource {
           return audioBytes;
         } else {
           debugPrint("Google Cloud TTS Response: 'audioContent' field missing or not a string in response.");
-          throw const ServerException(message: "'audioContent' missing or invalid in Google Cloud TTS response.");
+          throw const ServerException(message: 'text_to_speech translation failed');
         }
       } else {
         String errorMessage = "Google Cloud TTS API Error: ${response.statusCode}";
@@ -116,14 +116,14 @@ class TtsRemoteDataSourceImpl implements TtsRemoteDataSource {
         }
         debugPrint(errorMessage);
         debugPrint("Full Google Cloud TTS Error Response Body: $responseBodyString");
-        throw ServerException(statusCode: response.statusCode, message: errorMessage);
+        throw ServerException(statusCode: response.statusCode, message: 'text to speech conversion failed. Please try again!');
       }
     } on http.ClientException catch(e) { 
         debugPrint("HTTP Client Exception during Google TTS request: $e");
-        throw ServerException(message: "Network error during Google TTS request: ${e.message}");
+        throw ServerException(message: "Network error during Text_to_speech conversion request");
     } catch (e, s) {
       debugPrint("Unexpected error fetching Google TTS audio: $e\nStack: $s");
-      throw ServerException(message: "Unexpected error during Google TTS request: ${e.toString()}");
+      throw ServerException(message: "Unexpected error during text to speech conversion request");
     }
   }
 }

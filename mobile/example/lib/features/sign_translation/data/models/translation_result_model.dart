@@ -24,7 +24,7 @@ class TranslationResultModel extends TranslationResult {
     } else {
       // Throw an exception if the JSON format is invalid for the required fields.
       throw const FormatException(
-          'Invalid JSON format for TranslationResultModel: missing or invalid translated_text');
+          'invalid translated_text');
     }
   }
 
