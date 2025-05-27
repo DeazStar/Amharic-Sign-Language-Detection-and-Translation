@@ -14,13 +14,15 @@ abstract class Failure extends Equatable {
   // Simpler version without properties:
   const Failure();
   @override
-  List<Object> get props => []; // Ensure Equatable works even without properties
+  List<Object> get props => [];
+
+  get message => null; // Ensure Equatable works even without properties
 }
 
 // Example specific failure:
 class ServerFailure extends Failure {
   final String? message; // Optional message for more details
-  const ServerFailure({this.message});
+  const ServerFailure({this.message, int? statusCode});
 
    @override
   List<Object> get props => [message ?? 'ServerFailure']; // Include message if present

@@ -2,6 +2,7 @@
 
 import 'package:camera_app/app_theme.dart';
 import 'package:camera_app/features/sign_translation/presentation/pages/main_navigation_page.dart';
+import 'package:camera_app/features/text_to_speech/presentation/bloc/tts_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
@@ -39,6 +40,10 @@ class CameraAwesomeApp extends StatelessWidget {
          BlocProvider<FeedbackBloc>(
           create: (_) => sl<FeedbackBloc>(),
         ),
+        BlocProvider<TtsBloc>(
+          create: (_) => sl<TtsBloc>(),
+        ),
+          
       ],
       child: MaterialApp(
         title: 'Sign Language App',
