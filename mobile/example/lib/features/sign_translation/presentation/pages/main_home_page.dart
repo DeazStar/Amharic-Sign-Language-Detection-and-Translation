@@ -46,8 +46,8 @@ class MainHomePage extends StatelessWidget {
     // Dark Mode Colors
     final Color primaryColorDark = Colors.teal.shade700;
     final Color accentColorDark = Colors.amber.shade600;
-    final Color backgroundColorStartDark = Colors.grey.shade800; 
-    final Color backgroundColorEndDark = Colors.blueGrey.shade900; 
+    final Color backgroundColorStartDark = Colors.black; 
+    final Color backgroundColorEndDark = Colors.black; 
     const Color appBarTextColorDark = Colors.white;
     const Color bodyTextColorDark = Colors.white70;
     final Color bodySubTextColorDark = Colors.grey.shade400;

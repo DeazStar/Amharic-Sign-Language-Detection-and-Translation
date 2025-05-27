@@ -46,9 +46,17 @@ class _PreviewPageState extends State<PreviewPage> {
   String? _currentUiTempAudioFilePath; // To play from file
   Uint8List? _latestFetchedAudioBytes; // Store the latest fetched bytes
 
+  // Store BLoC instances
+  late TtsBloc _ttsBlocInstance;
+  // SignTranslationBloc instance can also be stored if needed in dispose, but not currently used there.
+
   @override
   void initState() {
     super.initState();
+
+    // Get BLoC instances in initState
+    _ttsBlocInstance = context.read<TtsBloc>();
+    // _signTranslationBlocInstance = context.read<SignTranslationBloc>(); // If needed
 
     _uiAudioPlayer.onPlayerStateChanged.listen((playerState) {
       if (mounted) {
@@ -83,6 +91,7 @@ class _PreviewPageState extends State<PreviewPage> {
           }
         });
     }
+    // _initiateTranslation(); // Call this via button press now
   }
 
   void _videoPlayerListener() {
@@ -95,9 +104,11 @@ class _PreviewPageState extends State<PreviewPage> {
   void dispose() {
     _videoController?.removeListener(_videoPlayerListener);
     _videoController?.dispose();
+    _uiAudioPlayer.release(); 
     _uiAudioPlayer.dispose();
-    _deleteUiTempAudioFile(); // Ensure cleanup on dispose
-    // No need to dispatch StopTtsAudioEvent as TtsBloc doesn't control playback
+    _deleteUiTempAudioFile(); 
+    // Use the stored BLoC instance in dispose
+    _ttsBlocInstance.add(ResetTtsStateEvent());
     super.dispose();
   }
 
@@ -119,14 +130,16 @@ class _PreviewPageState extends State<PreviewPage> {
   void _initiateTranslation() {
     final File fileToTranslate = File(widget.filePath);
     final InputType inputType = widget.isVideo ? InputType.video : InputType.photo;
-    // Reset TTS state (clears any previously fetched audio bytes in BLoC)
-    context.read<TtsBloc>().add(ResetTtsStateEvent());
-    // Also clear locally stored bytes and stop UI player
+    
+    _uiAudioPlayer.stop();
     setState(() {
       _latestFetchedAudioBytes = null;
+      _isUiAudioPlaying = false;
     });
-    _uiAudioPlayer.stop();
-
+    _deleteUiTempAudioFile();
+    // Use stored instance or context.read if it's safe (e.g., not in dispose)
+    _ttsBlocInstance.add(ResetTtsStateEvent()); 
+    
     context.read<SignTranslationBloc>().add(
           TranslateSignFileEvent(file: fileToTranslate, inputType: inputType),
         );
@@ -140,7 +153,7 @@ class _PreviewPageState extends State<PreviewPage> {
       return;
     }
     try {
-      await _deleteUiTempAudioFile(); // Clear previous temp file
+      await _deleteUiTempAudioFile(); 
       final tempDir = await getTemporaryDirectory();
       _currentUiTempAudioFilePath = '${tempDir.path}/ui_tts_audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
       final file = File(_currentUiTempAudioFilePath!);
@@ -230,9 +243,24 @@ class _PreviewPageState extends State<PreviewPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine if the current theme is dark mode for AppBar styling
+    final Brightness currentBrightness = MediaQuery.platformBrightnessOf(context);
+    final bool isDarkMode = currentBrightness == Brightness.dark;
+    
+    // Define AppBar colors based on the theme
+    final Color appBarBackgroundColor = isDarkMode ? Colors.teal.shade700 : Colors.teal;
+    final Color appBarTitleColor = Colors.white; 
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isVideo ? 'Video Preview & Translate' : 'Image Preview & Translate'),
+        backgroundColor: appBarBackgroundColor, 
+        titleTextStyle: TextStyle( 
+          color: appBarTitleColor,
+          fontSize: 20, 
+          fontWeight: FontWeight.w500, 
+        ),
+        iconTheme: IconThemeData(color: appBarTitleColor), 
       ),
       body: Column(
         children: [
@@ -249,16 +277,14 @@ class _PreviewPageState extends State<PreviewPage> {
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: BlocListener<TtsBloc, TtsState>( // Listener for TtsBloc
+              child: BlocListener<TtsBloc, TtsState>( 
                 listener: (context, ttsState) {
                   if (ttsState is TtsAudioReady) {
                     setState(() {
                       _latestFetchedAudioBytes = ttsState.audioBytes;
                     });
-                    // Optionally auto-play when ready, or let user press play
-                    // _playAudioFromBytes(ttsState.audioBytes); 
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Audio ready to play!'), backgroundColor: Colors.lightBlue),
+                      const SnackBar(content: Text('Audio ready to play! Tap "Play Audio".'), backgroundColor: Colors.lightBlue),
                     );
                   } else if (ttsState is TtsFailure) {
                      ScaffoldMessenger.of(context).showSnackBar(
@@ -304,31 +330,37 @@ class _PreviewPageState extends State<PreviewPage> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                // color: Colors.grey[200],
+                                color: Theme.of(context).colorScheme.surfaceVariant, 
                                 borderRadius: BorderRadius.circular(8),
-                                // border: Border.all(color: Colors.grey[400]!)
+                                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)
                               ),
                               child: Text(
                                 translatedText,
-                                style: const TextStyle(
+                                style: TextStyle(
+                                  fontSize: 16,
                                   fontFamily: 'NotoSerifEthiopic',
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant, 
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
                             const SizedBox(height: 20),
-                            // TTS Control Button
                             BlocBuilder<TtsBloc, TtsState>(
+                              // Use the stored instance for BlocBuilder if context is an issue,
+                              // but usually context.watch/read is fine in build methods.
+                              // For consistency, one might use _ttsBlocInstance here too if preferred,
+                              // but BlocBuilder is designed to work with context.watch implicitly.
+                              bloc: _ttsBlocInstance, // Explicitly provide the BLoC instance
                               builder: (context, ttsState) {
                                 IconData ttsIcon;
                                 String ttsButtonText;
                                 VoidCallback? ttsOnPressed;
-                                Color buttonColor = Colors.teal;
+                                Color buttonColor;
 
                                 if (ttsState is TtsLoading) {
                                   ttsIcon = Icons.hourglass_empty;
                                   ttsButtonText = 'Converting...';
-                                  ttsOnPressed = null; // Disable
+                                  ttsOnPressed = null; 
                                   buttonColor = Colors.grey;
                                 } else if (_isUiAudioPlaying) {
                                   ttsIcon = Icons.stop_circle_outlined;
@@ -337,29 +369,32 @@ class _PreviewPageState extends State<PreviewPage> {
                                     _uiAudioPlayer.stop();
                                   };
                                   buttonColor = Colors.redAccent;
-                                } else if (_latestFetchedAudioBytes != null) {
+                                } else if (_latestFetchedAudioBytes != null && ttsState is! TtsLoading) { 
                                   ttsIcon = Icons.play_circle_outline;
                                   ttsButtonText = 'Play Audio';
                                   ttsOnPressed = () {
                                     _playAudioFromBytes(_latestFetchedAudioBytes!);
                                   };
-                                } else { // TtsInitial, TtsFailure, or TtsAudioReady but not playing and no bytes yet
+                                  buttonColor = Colors.green; 
+                                } else { 
                                   ttsIcon = Icons.volume_up;
                                   ttsButtonText = 'Convert to Speech';
+                                  if (ttsState is TtsFailure) {
+                                    ttsButtonText = 'Retry Conversion';
+                                    buttonColor = Colors.orange;
+                                  } else {
+                                    buttonColor = Colors.teal;
+                                  }
                                   ttsOnPressed = () {
                                     if (translatedText.isNotEmpty) {
                                       final params = TtsRequestParams(
                                         text: translatedText,
-                                        languageCode: "am-ET",
-                                        voiceName: "am-ET-Standard-A",
+                                        languageCode: "am-ET", 
+                                        voiceName: "am-ET-Standard-A", 
                                       );
-                                      context.read<TtsBloc>().add(SynthesizeTextEvent(params: params));
+                                      _ttsBlocInstance.add(SynthesizeTextEvent(params: params));
                                     }
                                   };
-                                  if (ttsState is TtsFailure) {
-                                      ttsButtonText = 'Retry Conversion';
-                                      buttonColor = Colors.orange;
-                                  }
                                 }
 
                                 return ElevatedButton.icon(
@@ -375,15 +410,16 @@ class _PreviewPageState extends State<PreviewPage> {
                               icon: const Icon(Icons.clear_all),
                               label: const Text('Translate Another / Clear'),
                               onPressed: () {
-                                _uiAudioPlayer.stop(); // Stop UI player
-                                setState(() { _latestFetchedAudioBytes = null; }); // Clear local bytes
-                                context.read<TtsBloc>().add(ResetTtsStateEvent());
+                                _uiAudioPlayer.stop(); 
+                                setState(() { _latestFetchedAudioBytes = null; _isUiAudioPlaying = false; }); 
+                                _deleteUiTempAudioFile();
+                                _ttsBlocInstance.add(ResetTtsStateEvent()); // Use stored instance
                                 if (widget.isVideo && _videoController != null && _videoController!.value.isPlaying) {
                                   _videoController!.pause();
                                 }
                                 context.read<SignTranslationBloc>().add(ResetSignTranslationEvent());
                               },
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
                             ),
                           ],
                         ),
