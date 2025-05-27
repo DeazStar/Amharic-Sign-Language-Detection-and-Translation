@@ -304,14 +304,13 @@ class _PreviewPageState extends State<PreviewPage> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
+                                // color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey[400]!)
+                                // border: Border.all(color: Colors.grey[400]!)
                               ),
                               child: Text(
                                 translatedText,
                                 style: const TextStyle(
-                                  fontSize: 16,
                                   fontFamily: 'NotoSerifEthiopic',
                                 ),
                                 textAlign: TextAlign.center,
@@ -384,7 +383,7 @@ class _PreviewPageState extends State<PreviewPage> {
                                 }
                                 context.read<SignTranslationBloc>().add(ResetSignTranslationEvent());
                               },
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
                             ),
                           ],
                         ),
