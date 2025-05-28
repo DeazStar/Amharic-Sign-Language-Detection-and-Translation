@@ -10,8 +10,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 // WARNING: The access token below is short-lived and should NOT be hardcoded in production.
 // You will need to refresh it frequently for testing.
 // For production, use a proper server-side authentication method or API keys with restrictions.
-const String _googleCloudAccessToken = "ya29.a0AW4XtxjeaYa3fTIv0K5qCCUIlGcby2aPuRh4z6tElde1wjlbEuaFvQEMSYIB4QEN2CDNVqWHIxNQLnUtvA4n9KrQ_po1GOBTOMc3f59jZRNLTbshEgaciTNfS84n1KsrOGvPqsKmqvzKgKRtRG4vb0s-2OlyF_t9o1xvUWZm35WplAaCgYKAYkSARESFQHGX2MiStlbDL7bsW3RZEUFEP7kdg0181"; // YOUR SHORT-LIVED ACCESS TOKEN
-const String _googleCloudProjectId = "striped-botany-461100-c3"; // YOUR PROJECT ID
+const String _googleCloudAccessToken = dotenv.env['GOOGLE_CLOUD_ACCESS_TOKEN']; // YOUR SHORT-LIVED ACCESS TOKEN
+const String _googleCloudProjectId = dotenv.end['GOOGLE_CLOUD_PROJECT_ID']; // YOUR PROJECT ID
 
 const String _googleCloudTtsEndpoint = "https://texttospeech.googleapis.com/v1/text:synthesize";
 // Desired audio output format for Google Cloud TTS
