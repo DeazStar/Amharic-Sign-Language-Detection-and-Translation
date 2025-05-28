@@ -1,5 +1,6 @@
 // lib/injection_container.dart  OR  lib/core/di/injection_container.dart
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 
@@ -33,6 +34,14 @@ import 'package:camera_app/features/theme/domain/usecase/save_theme_usecase.dart
 import 'package:camera_app/features/theme/presenation/provider/theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+
+// Features - Text To Speech (New)
+import 'features/text_to_speech/domain/repositories/tts_repository.dart';
+import 'features/text_to_speech/data/repositories/tts_repository_impl.dart';
+import 'features/text_to_speech/data/datasources/tts_remote_datasource.dart';
+import 'features/text_to_speech/domain/usecases/speak_text_usecase.dart';
+import 'features/text_to_speech/presentation/bloc/tts_bloc.dart';
+
 
 // Create a GetIt instance
 final sl = GetIt.instance; // sl stands for Service Locator
@@ -116,4 +125,25 @@ Future<void> initServiceLocator() async {
 
   await themeProvider.init(); // Load saved theme before app starts
   sl.registerSingleton<ThemeProvider>(themeProvider);
+
+  // --- Features - Text To Speech --- (New)
+  // BLoC
+  sl.registerFactory(
+    () => TtsBloc(speakTextUseCase: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => SpeakTextUseCase(sl()));
+
+  // Repositories
+  sl.registerLazySingleton<TtsRepository>(
+    () => TtsRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
+  );
+
+  // Data Sources
+  sl.registerLazySingleton<TtsRemoteDataSource>(
+    () => TtsRemoteDataSourceImpl(client: sl()),
+  );
+sl.registerFactory(() => AudioPlayer());
+
 }

@@ -1,4 +1,4 @@
-// lib/features/sign_language_detection/presentation/pages/camera_page.dart
+// lib/features/sign_translation/presentation/pages/camera_page.dart
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -7,14 +7,8 @@ import 'package:camerawesome/pigeon.dart';
 import 'package:path_provider/path_provider.dart';
 
 // Import the PreviewPage from its new location
-// Make sure the project name 'camera_app' matches your actual project name
-// If your project root is 'camera_app', then the import should be:
-// import 'package:camera_app/featuress/sign_language_detection/presentation/pages/preview_page.dart';
-// For a generic structure assuming 'camera_app' is the project name in pubspec.yaml:
-import 'preview_page.dart'; // Adjusted relative path
-
-// Keep this commented if not used or if file_utils.dart is not part of the project structure
-// import '../../../../utils/file_utils.dart';
+// Ensure this path is correct based on your project structure.
+import 'preview_page.dart';
 
 class CameraPage extends StatelessWidget {
   const CameraPage({super.key});
@@ -34,13 +28,31 @@ class CameraPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Determine if the current theme is dark mode
+    final Brightness currentBrightness = MediaQuery.platformBrightnessOf(context);
+    final bool isDarkMode = currentBrightness == Brightness.dark;
+
+    // Define colors based on the theme
+    final Color appBarBackgroundColor = isDarkMode ? Colors.teal.shade700 : Colors.teal;
+    final Color appBarTitleColor = isDarkMode ? Colors.white : Colors.white; // Title is white in both for better contrast on teal/black
+    final Color cameraBackgroundColor = isDarkMode ? Colors.grey.shade800 : Colors.white;
+
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Capture Sign'),
-        
+        backgroundColor: appBarBackgroundColor,
+        titleTextStyle: TextStyle(
+          color: appBarTitleColor,
+          fontSize: 20, // Default AppBar title size
+          fontWeight: FontWeight.w500, // Default AppBar title weight
+        ),
+        iconTheme: IconThemeData(
+          color: appBarTitleColor, // For back button, etc.
+        ),
       ),
       body: Container(
-        color: Colors.white,
+        color: cameraBackgroundColor, // Set background for the camera view area
         child: CameraAwesomeBuilder.awesome(
           onMediaCaptureEvent: (event) {
             switch ((event.status, event.isPicture, event.isVideo)) {
@@ -61,8 +73,7 @@ class CameraPage extends StatelessWidget {
                       debugPrint('multiple image taken: $key ${value?.path}');
                       if (value != null) {
                         _navigateToPreview(context, value.path, false);
-                        // Optionally stop after the first navigation if that's desired
-                        // return;
+                        // return; // Optionally stop after the first navigation
                       }
                     });
                   },
@@ -108,7 +119,7 @@ class CameraPage extends StatelessWidget {
             photoPathBuilder: (sensors) async {
               final Directory extDir = await getTemporaryDirectory();
               final testDir = await Directory(
-                '${extDir.path}/camerawesome_media', // Changed folder name slightly
+                '${extDir.path}/camerawesome_media',
               ).create(recursive: true);
               if (sensors.length == 1) {
                 final String filePath =
@@ -130,20 +141,19 @@ class CameraPage extends StatelessWidget {
               ).create(recursive: true);
               final String filePath =
                   '${testDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
-              // Assuming single sensor for video for simplicity with current camerawesome setup
               return SingleCaptureRequest(filePath, sensors.first);
             },
             videoOptions: VideoOptions(
               enableAudio: true,
               ios: CupertinoVideoOptions(
-                fps: 10, // Consider if 10fps is sufficient
+                fps: 10,
               ),
               android: AndroidVideoOptions(
-                bitrate: 6000000, // 6 Mbps
+                bitrate: 6000000, 
                 fallbackStrategy: QualityFallbackStrategy.lower,
               ),
             ),
-            exifPreferences: ExifPreferences(saveGPSLocation: true), // Consider privacy implications
+            exifPreferences: ExifPreferences(saveGPSLocation: true),
           ),
           sensorConfig: SensorConfig.single(
             sensor: Sensor.position(SensorPosition.back),
@@ -155,10 +165,8 @@ class CameraPage extends StatelessWidget {
           previewAlignment: Alignment.center,
           previewFit: CameraPreviewFit.contain,
           availableFilters: awesomePresetFiltersList,
-          // onMediaTap can be used for quick preview or actions before full navigation
           onMediaTap: (mediaCapture) {
             debugPrint('onMediaTap triggered for ${mediaCapture.status}');
-            // Example: Maybe show a quick overlay, or if you implement a gallery view within CameraAwesome
           },
         ),
       ),

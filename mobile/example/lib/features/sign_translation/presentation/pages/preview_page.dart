@@ -1,19 +1,25 @@
 // lib/features/sign_language_detection/presentation/pages/preview_page.dart
 
-import 'dart:convert'; // For base64Decode
 import 'dart:io';
 import 'dart:typed_data'; // For Uint8List
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:audioplayers/audioplayers.dart'; // Import audioplayers
-
-// Uncomment if you use video_player
 import 'package:video_player/video_player.dart';
+import 'package:audioplayers/audioplayers.dart'; // For UI-controlled playback
+import 'package:path_provider/path_provider.dart'; // For temporary file
 
 // Import BLoC, Event, State from the sign_translation feature
 import '../../../sign_translation/presentation/bloc/sign_translation_bloc.dart';
 import '../../../sign_translation/presentation/bloc/sign_translation_event.dart';
 import '../../../sign_translation/presentation/bloc/sign_translation_state.dart';
+
+// Import BLoC, Event, State from the text_to_speech feature
+import '../../../text_to_speech/presentation/bloc/tts_bloc.dart';
+import '../../../text_to_speech/presentation/bloc/tts_event.dart';
+import '../../../text_to_speech/presentation/bloc/tts_state.dart';
+import '../../../text_to_speech/domain/entities/tts_request_params.dart';
+
+
 // Import InputType from core utils
 import '../../../../core/utils/input_type.dart';
 
@@ -32,28 +38,49 @@ class PreviewPage extends StatefulWidget {
 }
 
 class _PreviewPageState extends State<PreviewPage> {
-  VideoPlayerController? _videoController; // Uncomment for video_player
-  final AudioPlayer _audioPlayer = AudioPlayer(); // Instance of AudioPlayer
-  bool _isAudioPlaying = false; // To track audio playback state for UI updates
+  VideoPlayerController? _videoController;
+  
+  // UI-managed AudioPlayer
+  final AudioPlayer _uiAudioPlayer = AudioPlayer();
+  bool _isUiAudioPlaying = false;
+  String? _currentUiTempAudioFilePath; // To play from file
+  Uint8List? _latestFetchedAudioBytes; // Store the latest fetched bytes
+
+  // Store BLoC instances
+  late TtsBloc _ttsBlocInstance;
+  // SignTranslationBloc instance can also be stored if needed in dispose, but not currently used there.
 
   @override
   void initState() {
     super.initState();
-    // _audioPlayer.onPlayerStateChanged.listen((PlayerState s) { // For older versions
-    _audioPlayer.onPlayerStateChanged.listen((PlayerState s) {
+
+    // Get BLoC instances in initState
+    _ttsBlocInstance = context.read<TtsBloc>();
+    // _signTranslationBlocInstance = context.read<SignTranslationBloc>(); // If needed
+
+    _uiAudioPlayer.onPlayerStateChanged.listen((playerState) {
       if (mounted) {
         setState(() {
-          _isAudioPlaying = s == PlayerState.playing;
+          _isUiAudioPlaying = playerState == PlayerState.playing;
         });
+        if (playerState == PlayerState.completed || playerState == PlayerState.stopped) {
+          _deleteUiTempAudioFile(); // Clean up after playing or stopping
+        }
       }
     });
-    if (widget.isVideo) { // Uncomment for video_player
+     _uiAudioPlayer.onLog.listen((msg) { 
+        debugPrint("UI_AudioPlayer Log: $msg");
+    });
+
+
+    if (widget.isVideo) {
       _videoController = VideoPlayerController.file(File(widget.filePath))
         ..initialize().then((_) {
           if (mounted) {
             setState(() {});
-            _videoController?.play();
+            _videoController?.play(); 
             _videoController?.setLooping(true);
+            _videoController?.addListener(_videoPlayerListener);
           }
         }).catchError((error) {
           debugPrint("Error initializing video player: $error");
@@ -64,60 +91,135 @@ class _PreviewPageState extends State<PreviewPage> {
           }
         });
     }
+    // _initiateTranslation(); // Call this via button press now
+  }
+
+  void _videoPlayerListener() {
+    if (mounted && _videoController != null) {
+      setState(() {});
+    }
   }
 
   @override
   void dispose() {
-    _videoController?.dispose(); // Uncomment for video_player
-    _audioPlayer.dispose(); // Dispose the audio player
+    _videoController?.removeListener(_videoPlayerListener);
+    _videoController?.dispose();
+    _uiAudioPlayer.release(); 
+    _uiAudioPlayer.dispose();
+    _deleteUiTempAudioFile(); 
+    // Use the stored BLoC instance in dispose
+    _ttsBlocInstance.add(ResetTtsStateEvent());
     super.dispose();
+  }
+
+  Future<void> _deleteUiTempAudioFile() async {
+    if (_currentUiTempAudioFilePath != null) {
+      try {
+        final file = File(_currentUiTempAudioFilePath!);
+        if (await file.exists()) {
+          await file.delete();
+          debugPrint("UI: Temporary audio file deleted: $_currentUiTempAudioFilePath");
+        }
+      } catch (e) {
+        debugPrint("UI: Error deleting temporary audio file: $e");
+      }
+      _currentUiTempAudioFilePath = null;
+    }
   }
 
   void _initiateTranslation() {
     final File fileToTranslate = File(widget.filePath);
     final InputType inputType = widget.isVideo ? InputType.video : InputType.photo;
+    
+    _uiAudioPlayer.stop();
+    setState(() {
+      _latestFetchedAudioBytes = null;
+      _isUiAudioPlaying = false;
+    });
+    _deleteUiTempAudioFile();
+    // Use stored instance or context.read if it's safe (e.g., not in dispose)
+    _ttsBlocInstance.add(ResetTtsStateEvent()); 
+    
     context.read<SignTranslationBloc>().add(
           TranslateSignFileEvent(file: fileToTranslate, inputType: inputType),
         );
   }
 
-  Future<void> _playAudio(String base64Audio) async {
+  Future<void> _playAudioFromBytes(Uint8List audioBytes) async {
+    if (audioBytes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No audio data to play.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
     try {
-      if (base64Audio.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No audio data available.'), backgroundColor: Colors.orange),
-        );
-        return;
-      }
-      Uint8List audioBytes = base64Decode(base64Audio);
-      await _audioPlayer.play(BytesSource(audioBytes));
-      if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Playing audio...'), backgroundColor: Colors.blueAccent),
-        );
+      await _deleteUiTempAudioFile(); 
+      final tempDir = await getTemporaryDirectory();
+      _currentUiTempAudioFilePath = '${tempDir.path}/ui_tts_audio_${DateTime.now().millisecondsSinceEpoch}.mp3';
+      final file = File(_currentUiTempAudioFilePath!);
+      await file.writeAsBytes(audioBytes, flush: true);
+
+      if (await file.exists() && (await file.length()) > 0) {
+        await _uiAudioPlayer.play(DeviceFileSource(_currentUiTempAudioFilePath!));
+      } else {
+        throw Exception("Failed to create valid temporary audio file for UI playback.");
       }
     } catch (e) {
-      debugPrint("Error playing audio: $e");
+      debugPrint("UI: Error playing audio from bytes: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error playing audio: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('UI: Error playing audio: $e'), backgroundColor: Colors.red),
         );
       }
+      await _deleteUiTempAudioFile();
     }
-  }
-
-  Future<void> _stopAudio() async {
-    await _audioPlayer.stop();
   }
 
 
   Widget _buildMediaPreview() {
     if (widget.isVideo) {
-      // --- Video Player Implementation (using video_player package) ---
-      if (_videoController != null && _videoController!.value.isInitialized) { // Uncomment for video_player
-        return AspectRatio(
-          aspectRatio: _videoController!.value.aspectRatio,
-          child: VideoPlayer(_videoController!),
+      if (_videoController != null && _videoController!.value.isInitialized) {
+        return Stack(
+          alignment: Alignment.center,
+          children: <Widget>[
+            AspectRatio(
+              aspectRatio: _videoController!.value.aspectRatio,
+              child: VideoPlayer(_videoController!),
+            ),
+            GestureDetector(
+              onTap: () {
+                if (_videoController!.value.isPlaying) {
+                  _videoController!.pause();
+                } else {
+                  _videoController!.play();
+                }
+                if (mounted) setState(() {});
+              },
+              child: Container(color: Colors.transparent),
+            ),
+            Positioned.fill(
+              child: Center(
+                child: IconButton(
+                  icon: Icon(
+                    _videoController!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                    color: Colors.white70,
+                    size: 60.0,
+                  ),
+                  onPressed: () {
+                    if (mounted) {
+                      setState(() {
+                        if (_videoController!.value.isPlaying) {
+                          _videoController!.pause();
+                        } else {
+                          _videoController!.play();
+                        }
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
         );
       } else if (_videoController != null && _videoController!.value.hasError) {
         return const Center(
@@ -126,21 +228,7 @@ class _PreviewPageState extends State<PreviewPage> {
       } else {
         return const Center(child: CircularProgressIndicator());
       }
-      // --- Placeholder for Video ---
-      // return Center(
-      //   child: Column(
-      //     mainAxisAlignment: MainAxisAlignment.center,
-      //     children: [
-      //       const Icon(Icons.videocam, size: 100, color: Colors.grey),
-      //       const SizedBox(height: 10),
-      //       Text('Video Preview: ${widget.filePath.split('/').last}'),
-      //       const SizedBox(height: 10),
-      //       const Text('(Video player implementation needed)', style: TextStyle(fontSize: 12, color: Colors.grey)),
-      //     ],
-      //   ),
-      // );
     } else {
-      // --- Image Preview ---
       return Image.file(
         File(widget.filePath),
         fit: BoxFit.contain,
@@ -155,9 +243,24 @@ class _PreviewPageState extends State<PreviewPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Determine if the current theme is dark mode for AppBar styling
+    final Brightness currentBrightness = MediaQuery.platformBrightnessOf(context);
+    final bool isDarkMode = currentBrightness == Brightness.dark;
+    
+    // Define AppBar colors based on the theme
+    final Color appBarBackgroundColor = isDarkMode ? Colors.teal.shade700 : Colors.teal;
+    final Color appBarTitleColor = Colors.white; 
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isVideo ? 'Video Preview & Translate' : 'Image Preview & Translate'),
+        backgroundColor: appBarBackgroundColor, 
+        titleTextStyle: TextStyle( 
+          color: appBarTitleColor,
+          fontSize: 20, 
+          fontWeight: FontWeight.w500, 
+        ),
+        iconTheme: IconThemeData(color: appBarTitleColor), 
       ),
       body: Column(
         children: [
@@ -174,100 +277,167 @@ class _PreviewPageState extends State<PreviewPage> {
             flex: 2,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: BlocConsumer<SignTranslationBloc, SignTranslationState>(
-                listener: (context, state) {
-                  if (state is SignTranslationFailure) {
+              child: BlocListener<TtsBloc, TtsState>( 
+                listener: (context, ttsState) {
+                  if (ttsState is TtsAudioReady) {
+                    setState(() {
+                      _latestFetchedAudioBytes = ttsState.audioBytes;
+                    });
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Translation Failed: ${state.message}'),
-                        backgroundColor: Colors.redAccent,
-                      ),
+                      const SnackBar(content: Text('Audio ready to play! Tap "Play Audio".'), backgroundColor: Colors.lightBlue),
                     );
-                  } else if (state is SignTranslationSuccess) {
+                  } else if (ttsState is TtsFailure) {
                      ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Translation Successful!'),
-                        backgroundColor: Colors.green,
-                      ),
+                      SnackBar(content: Text('TTS Synthesis Failed: ${ttsState.message}'), backgroundColor: Colors.deepOrange),
                     );
                   }
                 },
-                builder: (context, state) {
-                  if (state is SignTranslationLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+                child: BlocConsumer<SignTranslationBloc, SignTranslationState>(
+                  listener: (context, signState) {
+                    if (signState is SignTranslationFailure) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Translation Failed: ${signState.message}'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    } else if (signState is SignTranslationSuccess) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Translation Successful!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  builder: (context, signState) {
+                    if (signState is SignTranslationLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                  if (state is SignTranslationSuccess) {
-                    final bool hasAudio = state.translationResult.audioBase64 != null &&
-                                          state.translationResult.audioBase64!.isNotEmpty;
-                    return SingleChildScrollView(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Translation Result:',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[400]!)
-                            ),
-                            child: Text(
-                              state.translationResult.translatedText,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontFamily: 'NotoSerifEthiopic', // Example font name
-                              ),
+                    if (signState is SignTranslationSuccess) {
+                      final String translatedText = signState.translationResult.translatedText;
+                      return SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Translation Result:',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center,
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          if (hasAudio)
-                            ElevatedButton.icon(
-                              icon: Icon(_isAudioPlaying ? Icons.stop_circle_outlined : Icons.play_circle_outline),
-                              label: Text(_isAudioPlaying ? 'Stop Audio' : 'Play Audio'),
-                              onPressed: () {
-                                if (_isAudioPlaying) {
-                                  _stopAudio();
-                                } else {
-                                  _playAudio(state.translationResult.audioBase64!);
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: _isAudioPlaying ? Colors.redAccent : Colors.blueAccent,
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surfaceVariant, 
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)
+                              ),
+                              child: Text(
+                                translatedText,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontFamily: 'NotoSerifEthiopic',
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant, 
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                          if (hasAudio) const SizedBox(height: 10), // Spacing if audio button is present
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.clear_all),
-                            label: const Text('Translate Another / Clear'),
-                            onPressed: () {
-                              _stopAudio(); // Stop audio if playing before resetting
-                              context.read<SignTranslationBloc>().add(ResetSignTranslationEvent());
-                            },
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent),
-                          ),
-                        ],
+                            const SizedBox(height: 20),
+                            BlocBuilder<TtsBloc, TtsState>(
+                              // Use the stored instance for BlocBuilder if context is an issue,
+                              // but usually context.watch/read is fine in build methods.
+                              // For consistency, one might use _ttsBlocInstance here too if preferred,
+                              // but BlocBuilder is designed to work with context.watch implicitly.
+                              bloc: _ttsBlocInstance, // Explicitly provide the BLoC instance
+                              builder: (context, ttsState) {
+                                IconData ttsIcon;
+                                String ttsButtonText;
+                                VoidCallback? ttsOnPressed;
+                                Color buttonColor;
+
+                                if (ttsState is TtsLoading) {
+                                  ttsIcon = Icons.hourglass_empty;
+                                  ttsButtonText = 'Converting...';
+                                  ttsOnPressed = null; 
+                                  buttonColor = Colors.grey;
+                                } else if (_isUiAudioPlaying) {
+                                  ttsIcon = Icons.stop_circle_outlined;
+                                  ttsButtonText = 'Stop Audio';
+                                  ttsOnPressed = () {
+                                    _uiAudioPlayer.stop();
+                                  };
+                                  buttonColor = Colors.redAccent;
+                                } else if (_latestFetchedAudioBytes != null && ttsState is! TtsLoading) { 
+                                  ttsIcon = Icons.play_circle_outline;
+                                  ttsButtonText = 'Play Audio';
+                                  ttsOnPressed = () {
+                                    _playAudioFromBytes(_latestFetchedAudioBytes!);
+                                  };
+                                  buttonColor = Colors.green; 
+                                } else { 
+                                  ttsIcon = Icons.volume_up;
+                                  ttsButtonText = 'Convert to Speech';
+                                  if (ttsState is TtsFailure) {
+                                    ttsButtonText = 'Retry Conversion';
+                                    buttonColor = Colors.orange;
+                                  } else {
+                                    buttonColor = Colors.teal;
+                                  }
+                                  ttsOnPressed = () {
+                                    if (translatedText.isNotEmpty) {
+                                      final params = TtsRequestParams(
+                                        text: translatedText,
+                                        languageCode: "am-ET", 
+                                        voiceName: "am-ET-Standard-A", 
+                                      );
+                                      _ttsBlocInstance.add(SynthesizeTextEvent(params: params));
+                                    }
+                                  };
+                                }
+
+                                return ElevatedButton.icon(
+                                  icon: Icon(ttsIcon),
+                                  label: Text(ttsButtonText),
+                                  onPressed: translatedText.isEmpty ? null : ttsOnPressed,
+                                  style: ElevatedButton.styleFrom(backgroundColor: buttonColor),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.clear_all),
+                              label: const Text('Translate Another / Clear'),
+                              onPressed: () {
+                                _uiAudioPlayer.stop(); 
+                                setState(() { _latestFetchedAudioBytes = null; _isUiAudioPlaying = false; }); 
+                                _deleteUiTempAudioFile();
+                                _ttsBlocInstance.add(ResetTtsStateEvent()); // Use stored instance
+                                if (widget.isVideo && _videoController != null && _videoController!.value.isPlaying) {
+                                  _videoController!.pause();
+                                }
+                                context.read<SignTranslationBloc>().add(ResetSignTranslationEvent());
+                              },
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return Center(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.translate),
+                        label: const Text('Translate Sign'),
+                        onPressed: _initiateTranslation,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                          textStyle: const TextStyle(fontSize: 16),
+                        ),
                       ),
                     );
-                  }
-                  return Center(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.translate),
-                      label: const Text('Translate Sign'),
-                      onPressed: _initiateTranslation,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        textStyle: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  );
-                },
+                  },
+                ),
               ),
             ),
           ),

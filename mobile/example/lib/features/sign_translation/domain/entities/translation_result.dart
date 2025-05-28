@@ -9,17 +9,16 @@ class TranslationResult extends Equatable {
   /// The text generated from the sign language input (image or video).
   final String translatedText;
 
-  /// Optional: Base64 encoded string of the audio file for the translated text.
-  final String? audioBase64;
+  
 
   /// Constructor for the TranslationResult.
   const TranslationResult({
     required this.translatedText,
-    this.audioBase64, // Make it optional if the backend might not always return it
+   // Make it optional if the backend might not always return it
   });
 
   /// Overriding props for value comparison using the Equatable package.
   /// This helps in comparing two instances of TranslationResult.
   @override
-  List<Object?> get props => [translatedText, audioBase64];
+  List<Object?> get props => [translatedText];
 }
